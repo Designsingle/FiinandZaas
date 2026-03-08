@@ -7,17 +7,23 @@
 
 <title>Control Financiero</title>
 
-<link rel="stylesheet" href="estilos.css">
+<link rel="stylesheet" href="css/estilos.css">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
 
 <body>
 
-
 <h1>Finanzas</h1>
 
+<h2 id="balance">Balance: $0</h2>
+
+<label>Filtrar por mes:</label>
+<input type="month" id="filtroMes" onchange="cargarMovimientos()">
+
+<canvas id="grafica"></canvas>
 
 <section class="formulario">
 
@@ -40,30 +46,26 @@
 
 </section>
 
-
-
 <h2>Movimientos</h2>
 
 <div id="lista"></div>
-
-
 
 <script>
 
 /* CONFIGURACION SUPABASE */
 
 const supabaseUrl = "https://TU-PROYECTO.supabase.co"
-
-const supabaseKey = "sb_sb_publishable_bHjqEYFc1GolbIqgfghRMw_HdhTzhrM"
+const supabaseKey = "sb_publishable_bHjqEYFc1GolbIqgfghRMw_HdhTzhrM"
 
 const supabase = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 )
 
+let grafica
 
 
-/* GUARDAR DATOS */
+/* GUARDAR MOVIMIENTO */
 
 async function guardarMovimiento(){
 
@@ -73,7 +75,6 @@ const banca = document.getElementById("banca").value
 const tipo = document.getElementById("tipo").value
 const descripcion = document.getElementById("descripcion").value
 const fecha = document.getElementById("fecha").value
-
 
 const { data, error } = await supabase
 .from("movimientos")
@@ -88,7 +89,6 @@ Fecha:fecha
 }
 ])
 
-
 if(error){
 
 alert("Error al guardar")
@@ -97,6 +97,9 @@ console.log(error)
 }else{
 
 alert("Movimiento guardado")
+
+limpiarFormulario()
+
 cargarMovimientos()
 
 }
@@ -104,42 +107,104 @@ cargarMovimientos()
 }
 
 
+/* LIMPIAR FORMULARIO */
 
-/* CARGAR DATOS */
+function limpiarFormulario(){
+
+document.getElementById("nombre").value=""
+document.getElementById("cantidad").value=""
+document.getElementById("banca").value=""
+document.getElementById("descripcion").value=""
+document.getElementById("fecha").value=""
+
+}
+
+
+/* CARGAR MOVIMIENTOS */
 
 async function cargarMovimientos(){
 
-const { data, error } = await supabase
+const filtro = document.getElementById("filtroMes").value
+
+let query = supabase
 .from("movimientos")
 .select("*")
 .order("Fecha",{ascending:false})
 
+if(filtro){
+query = query.gte("Fecha", filtro+"-01")
+}
+
+const { data, error } = await query
 
 if(error){
 console.log(error)
 return
 }
 
-
 const lista = document.getElementById("lista")
 
 lista.innerHTML = ""
+
+let ingresos = 0
+let egresos = 0
 
 
 data.forEach(mov => {
 
 const signo = mov.Tipo === "Ingreso" ? "+" : "-"
 
+if(mov.Tipo === "Ingreso"){
+ingresos += Number(mov.Cantidad)
+}else{
+egresos += Number(mov.Cantidad)
+}
+
 const item = document.createElement("div")
 
 item.className = "item"
 
 item.innerHTML = `
-<span class="cantidad">${signo} ${mov.Cantidad}</span>
+<span class="cantidad">${signo} $${mov.Cantidad}</span>
 <span class="descripcion">${mov.Descripcion}</span>
 `
 
 lista.appendChild(item)
+
+})
+
+
+const balance = ingresos - egresos
+
+document.getElementById("balance").innerText =
+"Balance: $" + balance
+
+
+crearGrafica(ingresos,egresos)
+
+}
+
+
+/* CREAR GRAFICA */
+
+function crearGrafica(ingresos,egresos){
+
+const ctx = document.getElementById("grafica")
+
+if(grafica){
+grafica.destroy()
+}
+
+grafica = new Chart(ctx,{
+
+type:"doughnut",
+
+data:{
+labels:["Ingresos","Gastos"],
+datasets:[{
+data:[ingresos,egresos]
+}]
+}
 
 })
 
@@ -149,7 +214,6 @@ lista.appendChild(item)
 cargarMovimientos()
 
 </script>
-
 
 </body>
 </html>
