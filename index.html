@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Control Financiero</title>
+
+<link rel="stylesheet" href="estilos.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+</head>
+
+<body>
+
+
+<h1>Finanzas</h1>
+
+
+<section class="formulario">
+
+<input id="nombre" placeholder="Nombre">
+
+<input id="cantidad" type="number" placeholder="Cantidad">
+
+<input id="banca" placeholder="Cuenta / Banca">
+
+<select id="tipo">
+<option value="Ingreso">Ingreso</option>
+<option value="Egreso">Egreso</option>
+</select>
+
+<input id="descripcion" placeholder="Descripción">
+
+<input id="fecha" type="date">
+
+<button onclick="guardarMovimiento()">Guardar</button>
+
+</section>
+
+
+
+<h2>Movimientos</h2>
+
+<div id="lista"></div>
+
+
+
+<script>
+
+/* CONFIGURACION SUPABASE */
+
+const supabaseUrl = "https://TU-PROYECTO.supabase.co"
+
+const supabaseKey = "sb_sb_publishable_bHjqEYFc1GolbIqgfghRMw_HdhTzhrM"
+
+const supabase = window.supabase.createClient(
+  supabaseUrl,
+  supabaseKey
+)
+
+
+
+/* GUARDAR DATOS */
+
+async function guardarMovimiento(){
+
+const nombre = document.getElementById("nombre").value
+const cantidad = document.getElementById("cantidad").value
+const banca = document.getElementById("banca").value
+const tipo = document.getElementById("tipo").value
+const descripcion = document.getElementById("descripcion").value
+const fecha = document.getElementById("fecha").value
+
+
+const { data, error } = await supabase
+.from("movimientos")
+.insert([
+{
+Nombre:nombre,
+Cantidad:cantidad,
+Banca:banca,
+Tipo:tipo,
+Descripcion:descripcion,
+Fecha:fecha
+}
+])
+
+
+if(error){
+
+alert("Error al guardar")
+console.log(error)
+
+}else{
+
+alert("Movimiento guardado")
+cargarMovimientos()
+
+}
+
+}
+
+
+
+/* CARGAR DATOS */
+
+async function cargarMovimientos(){
+
+const { data, error } = await supabase
+.from("movimientos")
+.select("*")
+.order("Fecha",{ascending:false})
+
+
+if(error){
+console.log(error)
+return
+}
+
+
+const lista = document.getElementById("lista")
+
+lista.innerHTML = ""
+
+
+data.forEach(mov => {
+
+const signo = mov.Tipo === "Ingreso" ? "+" : "-"
+
+const item = document.createElement("div")
+
+item.className = "item"
+
+item.innerHTML = `
+<span class="cantidad">${signo} ${mov.Cantidad}</span>
+<span class="descripcion">${mov.Descripcion}</span>
+`
+
+lista.appendChild(item)
+
+})
+
+}
+
+
+cargarMovimientos()
+
+</script>
+
+
+</body>
+</html>
